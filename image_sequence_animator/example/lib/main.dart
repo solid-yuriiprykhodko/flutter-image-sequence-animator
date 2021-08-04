@@ -123,7 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       key: Key("online"),
                       fullPaths: _useFullPaths ? _fullPathsOffline : null,
                       isAutoPlay: true,
-                      isOnline: true,
+                      imageSource: ImageSource.network,
 //                      waitUntilCacheIsComplete: true,
 //                      cacheProgressIndicatorBuilder: (context, progress) {
 //                        return CircularProgressIndicator(

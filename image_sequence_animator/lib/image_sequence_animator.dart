@@ -7,6 +7,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //@formatter:off
 
+import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -15,6 +16,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 typedef CacheProgressIndicatorBuilder = Widget Function(BuildContext context, double progress);
 typedef ImageSequenceProcessCallback = void Function(ImageSequenceAnimatorState _imageSequenceAnimator);
+
+enum ImageSource { asset, network, fileSystem }
 
 class ImageSequenceAnimator extends StatefulWidget {
   ///The directory of your image sequence.
@@ -71,8 +74,8 @@ class ImageSequenceAnimator extends StatefulWidget {
   ///Use this value to determine the color for your image sequence.
   final Color? color;
 
-  ///Set this value to true if your [folderName] is an online path.
-  final bool isOnline;
+  /// Where to load the images from.
+  final ImageSource imageSource;
 
   ///Set this value to true if you want the [ImageSequenceAnimator] to wait until the entire image sequence is cached. Otherwise, the [ImageSequenceAnimator]
   ///will invoke [onReadyToPlay] and start playing if [isAutoPlay] is set to true when it approximates that the remaining caching can be completed without
@@ -108,7 +111,7 @@ class ImageSequenceAnimator extends StatefulWidget {
     this.isBoomerang: false,
     this.isAutoPlay: true,
     this.color,
-    this.isOnline: false,
+    this.imageSource: ImageSource.asset,
     this.waitUntilCacheIsComplete: false,
     this.cacheProgressIndicatorBuilder,
     this.onReadyToPlay,
@@ -236,7 +239,7 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
     if (_folderName.endsWith("/")) _folderName = _folderName.substring(0, _folderName.indexOf(("/")));
     if (_fileFormat.startsWith(".")) _fileFormat = _fileFormat.substring(1);
 
-    if (!widget.isOnline) {
+    if (ImageSource.network != widget.imageSource) {
       _isReadyToPlay = true;
       if (widget.onReadyToPlay != null) widget.onReadyToPlay!(this);
       if (widget.isAutoPlay) play();
@@ -388,18 +391,24 @@ class ImageSequenceAnimatorState extends State<ImageSequenceAnimator> with Singl
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.isOnline)
+    if (ImageSource.network != widget.imageSource)
       return ValueListenableBuilder(
         builder: (BuildContext context, int change, Widget? cachedChild) {
           if (_currentOfflineFrame == null || _animationController!.value.floor() != _previousFrame || _colorChanged) {
             _colorChanged = false;
             _previousFrame = _animationController!.value.floor();
             if (_previousFrame < _frameCount)
-              _currentOfflineFrame = Image.asset(
-                _getDirectory(),
-                color: color,
-                gaplessPlayback: true,
-              );
+              _currentOfflineFrame = ImageSource.asset == widget.imageSource
+                  ? Image.asset(
+                      _getDirectory(),
+                      color: color,
+                      gaplessPlayback: true,
+                    )
+                  : Image.file(
+                      File(_getDirectory()),
+                      color: color,
+                      gaplessPlayback: true,
+                    );
           }
 
           return _currentOfflineFrame!;
